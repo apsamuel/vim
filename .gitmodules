@@ -1,0 +1,120 @@
+[submodule "pack/shared/start/vim-fugitive"]
+	path = pack/shared/start/vim-fugitive
+	url = https://github.com/tpope/vim-fugitive.git
+[submodule "pack/shared/start/vim-surround"]
+	path = pack/shared/start/vim-surround
+	url = https://github.com/tpope/vim-surround.git
+[submodule "pack/shared/start/vim-commentary"]
+	path = pack/shared/start/vim-commentary
+	url = https://github.com/tpope/vim-commentary.git
+[submodule "pack/shared/start/vim-repeat"]
+	path = pack/shared/start/vim-repeat
+	url = https://github.com/tpope/vim-repeat.git
+[submodule "pack/shared/start/vim-sleuth"]
+	path = pack/shared/start/vim-sleuth
+	url = https://github.com/tpope/vim-sleuth.git
+[submodule "pack/shared/start/vim-unimpaired"]
+	path = pack/shared/start/vim-unimpaired
+	url = https://github.com/tpope/vim-unimpaired.git
+[submodule "pack/shared/start/vim-eunuch"]
+	path = pack/shared/start/vim-eunuch
+	url = https://github.com/tpope/vim-eunuch.git
+[submodule "pack/shared/start/vim-gitgutter"]
+	path = pack/shared/start/vim-gitgutter
+	url = https://github.com/airblade/vim-gitgutter.git
+[submodule "pack/shared/start/fzf"]
+	path = pack/shared/start/fzf
+	url = https://github.com/junegunn/fzf.git
+[submodule "pack/shared/start/fzf.vim"]
+	path = pack/shared/start/fzf.vim
+	url = https://github.com/junegunn/fzf.vim.git
+[submodule "pack/shared/start/nerdtree"]
+	path = pack/shared/start/nerdtree
+	url = https://github.com/preservim/nerdtree.git
+[submodule "pack/shared/start/editorconfig-vim"]
+	path = pack/shared/start/editorconfig-vim
+	url = https://github.com/editorconfig/editorconfig-vim.git
+[submodule "pack/shared/start/vim-polyglot"]
+	path = pack/shared/start/vim-polyglot
+	url = https://github.com/sheerun/vim-polyglot.git
+[submodule "pack/shared/start/ale"]
+	path = pack/shared/start/ale
+	url = https://github.com/dense-analysis/ale.git
+[submodule "pack/shared/start/gruvbox"]
+	path = pack/shared/start/gruvbox
+	url = https://github.com/morhetz/gruvbox.git
+[submodule "pack/shared/start/vim-airline"]
+	path = pack/shared/start/vim-airline
+	url = https://github.com/vim-airline/vim-airline.git
+[submodule "pack/shared/start/vim-airline-themes"]
+	path = pack/shared/start/vim-airline-themes
+	url = https://github.com/vim-airline/vim-airline-themes.git
+[submodule "pack/nvim/opt/plenary.nvim"]
+	path = pack/nvim/opt/plenary.nvim
+	url = https://github.com/nvim-lua/plenary.nvim.git
+[submodule "pack/nvim/opt/nvim-lspconfig"]
+	path = pack/nvim/opt/nvim-lspconfig
+	url = https://github.com/neovim/nvim-lspconfig.git
+[submodule "pack/nvim/opt/mason.nvim"]
+	path = pack/nvim/opt/mason.nvim
+	url = https://github.com/williamboman/mason.nvim.git
+[submodule "pack/nvim/opt/mason-lspconfig.nvim"]
+	path = pack/nvim/opt/mason-lspconfig.nvim
+	url = https://github.com/williamboman/mason-lspconfig.nvim.git
+[submodule "pack/nvim/opt/nvim-cmp"]
+	path = pack/nvim/opt/nvim-cmp
+	url = https://github.com/hrsh7th/nvim-cmp.git
+[submodule "pack/nvim/opt/cmp-nvim-lsp"]
+	path = pack/nvim/opt/cmp-nvim-lsp
+	url = https://github.com/hrsh7th/cmp-nvim-lsp.git
+[submodule "pack/nvim/opt/cmp-buffer"]
+	path = pack/nvim/opt/cmp-buffer
+	url = https://github.com/hrsh7th/cmp-buffer.git
+[submodule "pack/nvim/opt/cmp-path"]
+	path = pack/nvim/opt/cmp-path
+	url = https://github.com/hrsh7th/cmp-path.git
+[submodule "pack/nvim/opt/LuaSnip"]
+	path = pack/nvim/opt/LuaSnip
+	url = https://github.com/L3MON4D3/LuaSnip.git
+[submodule "pack/nvim/opt/cmp_luasnip"]
+	path = pack/nvim/opt/cmp_luasnip
+	url = https://github.com/saadparwaiz1/cmp_luasnip.git
+[submodule "pack/nvim/opt/friendly-snippets"]
+	path = pack/nvim/opt/friendly-snippets
+	url = https://github.com/rafamadriz/friendly-snippets.git
+[submodule "pack/nvim/opt/nvim-treesitter"]
+	path = pack/nvim/opt/nvim-treesitter
+	url = https://github.com/nvim-treesitter/nvim-treesitter.git
+[submodule "pack/nvim/opt/nvim-treesitter-textobjects"]
+	path = pack/nvim/opt/nvim-treesitter-textobjects
+	url = https://github.com/nvim-treesitter/nvim-treesitter-textobjects.git
+[submodule "pack/nvim/opt/telescope.nvim"]
+	path = pack/nvim/opt/telescope.nvim
+	url = https://github.com/nvim-telescope/telescope.nvim.git
+[submodule "pack/nvim/opt/telescope-fzf-native.nvim"]
+	path = pack/nvim/opt/telescope-fzf-native.nvim
+	url = https://github.com/nvim-telescope/telescope-fzf-native.nvim.git
+[submodule "pack/nvim/opt/lualine.nvim"]
+	path = pack/nvim/opt/lualine.nvim
+	url = https://github.com/nvim-lualine/lualine.nvim.git
+[submodule "pack/nvim/opt/gitsigns.nvim"]
+	path = pack/nvim/opt/gitsigns.nvim
+	url = https://github.com/lewis6991/gitsigns.nvim.git
+[submodule "pack/nvim/opt/nvim-tree.lua"]
+	path = pack/nvim/opt/nvim-tree.lua
+	url = https://github.com/nvim-tree/nvim-tree.lua.git
+[submodule "pack/nvim/opt/nvim-web-devicons"]
+	path = pack/nvim/opt/nvim-web-devicons
+	url = https://github.com/nvim-tree/nvim-web-devicons.git
+[submodule "pack/nvim/opt/which-key.nvim"]
+	path = pack/nvim/opt/which-key.nvim
+	url = https://github.com/folke/which-key.nvim.git
+[submodule "pack/nvim/opt/nvim-autopairs"]
+	path = pack/nvim/opt/nvim-autopairs
+	url = https://github.com/windwp/nvim-autopairs.git
+[submodule "pack/nvim/opt/nvim"]
+	path = pack/nvim/opt/nvim
+	url = https://github.com/catppuccin/nvim.git
+[submodule "pack/nvim/opt/tokyonight.nvim"]
+	path = pack/nvim/opt/tokyonight.nvim
+	url = https://github.com/folke/tokyonight.nvim.git
