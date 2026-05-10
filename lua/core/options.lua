@@ -4,7 +4,9 @@ local opt = vim.opt
 opt.completeopt = { 'menu', 'menuone', 'noselect' }
 opt.pumheight = 12
 opt.shortmess:append('c')
-opt.fillchars = { eob = ' ', fold = ' ', foldopen = '', foldsep = ' ', foldclose = '' }
+-- Each fillchar must be exactly one display cell. Glyphs from a Nerd Font
+-- work; if you don't have one, use simple ASCII (e.g. '-', '|').
+opt.fillchars = { eob = ' ', fold = ' ', foldopen = 'v', foldsep = '|', foldclose = '>' }
 
 -- treesitter handles folds where available
 opt.foldmethod = 'expr'

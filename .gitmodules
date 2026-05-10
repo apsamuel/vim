@@ -85,9 +85,11 @@
 [submodule "pack/nvim/opt/nvim-treesitter"]
 	path = pack/nvim/opt/nvim-treesitter
 	url = https://github.com/nvim-treesitter/nvim-treesitter.git
+	branch = master
 [submodule "pack/nvim/opt/nvim-treesitter-textobjects"]
 	path = pack/nvim/opt/nvim-treesitter-textobjects
 	url = https://github.com/nvim-treesitter/nvim-treesitter-textobjects.git
+	branch = master
 [submodule "pack/nvim/opt/telescope.nvim"]
 	path = pack/nvim/opt/telescope.nvim
 	url = https://github.com/nvim-telescope/telescope.nvim.git
