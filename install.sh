@@ -80,12 +80,14 @@ if command -v nvim >/dev/null 2>&1; then
   nvim --headless -u "$REPO/init.lua" -c 'silent! helptags ALL' -c 'qa!' >/dev/null 2>&1 || true
 fi
 
-# ---- optional: build telescope-fzf-native --------------------------------
-FZF_NATIVE="$REPO/pack/nvim/opt/telescope-fzf-native.nvim"
-if [[ -d "$FZF_NATIVE" ]] && command -v make >/dev/null 2>&1; then
-  log "building telescope-fzf-native"
-  (cd "$FZF_NATIVE" && make) >/dev/null 2>&1 \
-    || warn "telescope-fzf-native build failed (non-fatal)"
+# ---- native plugin builds (fzf-native, fzf binary, jsregexp, TS parsers) -
+# Delegated to `make build` so the logic lives in one place. Sub-targets are
+# best-effort and skip themselves if their toolchain is missing.
+if command -v make >/dev/null 2>&1; then
+  log "building native plugin artifacts (make build)"
+  (cd "$REPO" && make build) || warn "some native builds failed (non-fatal)"
+else
+  warn "make not found; skipping native plugin builds"
 fi
 
 # ---- done -----------------------------------------------------------------
