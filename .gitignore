@@ -1,0 +1,27 @@
+# swap / undo / backup
+*.swp
+*.swo
+*.un~
+*~
+.netrwhist
+
+# tags
+tags
+tags.lock
+tags.temp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# vim spell tmp
+*.add.spl
+
+# nvim runtime caches that may end up under the repo if user symlinks aggressively
+shada/
+shada.tmp
+view/
+sessions/
+
+# mason-installed binaries (per-machine)
+mason/
