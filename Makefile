@@ -1,11 +1,60 @@
-# Self-contained vim + nvim configuration.
+# ──────────────────────────────────────────────────────────────────────────────
+# vim + nvim — plugin management, symlink setup, native artifact builds
+#
 # Plugins are vendored as git submodules under pack/{shared,nvim}/{start,opt}.
+# This Makefile symlinks ~/.vim/nvim configs, initializes plugin submodules,
+# and builds native plugins (fzf, jsregexp, treesitter parsers).
+#
+# Usage:
+#   make                                      # print help
+#   make install                              # symlinks + submodule init + build
+#   make update                               # pull latest for floated plugins, rebuild
+#   make build                                # compile native artifacts (fzf, jsregexp, TS)
+#   make helptags                             # regenerate vim/nvim helptags
+#   make add PLUGIN=owner/repo BUNDLE=shared|nvim  # vendor a new plugin
+#   make rm  PLUGIN=name   BUNDLE=shared|nvim     # remove a vendored plugin
+#   make list                                 # list all vendored plugins
+#   make plugins                              # show staged plugins per editor
+#   make doctor                               # run :checkhealth in nvim
+#
+# Parameters:
+#   BUNDLE       target bundle: 'shared' (both vim/nvim) or 'nvim' (nvim only) (default: shared)
+#   PLUGIN       GitHub owner/repo or plugin name (for add/rm)
+#   DOT_DRY_RUN=1  print planned changes, do not mutate (symlinks, submodules, etc.)
+#   DOT_DEBUG=1    enable bash xtrace (-x) during install/build
+#   DOT_VERBOSE=1  verbose output for git/cmake/make operations
+#
+# Environment Variables:
+#   The root Makefile and bootstrap.sh pass these env vars:
+#   - DRY → DOT_DRY_RUN (disable all mutations if 1)
+#   - DEBUG → DOT_DEBUG (enable xtrace if 1)
+#   - VERBOSE → DOT_VERBOSE (verbose output if 1)
+#
+# Dry-run Behavior (DOT_DRY_RUN=1):
+#   - Planned symlinks, submodule operations shown as "[dry-run] <cmd>"
+#   - No files copied, moved, or symlinked
+#   - No git submodule init, deinit, update operations execute
+#   - No cmake/make build operations execute
+#   - Expected output: "🔮 plan » <planned_action>" prefix
+#
+# Examples:
+#   DRY=1 make install          # Preview install without changes
+#   DEBUG=1 make build          # Show build commands with xtrace
+#   DRY=1 DEBUG=1 make update   # Dry-run with debug output
+# ──────────────────────────────────────────────────────────────────────────────
 
 REPO            := $(shell pwd)
 SHARED_BUNDLE   := pack/shared/start
 NVIM_BUNDLE     := pack/nvim/opt
 BUNDLE          ?= shared
 PLUGIN          ?=
+DOT_DRY_RUN     ?= 0
+DOT_DEBUG       ?= 0
+DOT_VERBOSE     ?= 0
+
+RECIPE_ENV := set -euo pipefail; \
+	if [[ "$(DOT_DEBUG)" == "1" ]]; then set -x; fi; \
+	dry="$(DOT_DRY_RUN)"
 
 .PHONY: help install update helptags clean add rm doctor list plugins build \
         build-fzf-native build-fzf-bin build-luasnip-jsregexp build-treesitter
@@ -24,13 +73,18 @@ help:
 	@printf '  make clean                      Remove ~/.vim and ~/.config/nvim symlinks.\n'
 
 install:
-	@bash $(REPO)/install.sh
+	@DOT_DRY_RUN="$(DOT_DRY_RUN)" DOT_DEBUG="$(DOT_DEBUG)" DOT_VERBOSE="$(DOT_VERBOSE)" bash $(REPO)/install.sh
 
 update:
-	@echo '[update] git submodule update --remote --merge --jobs 8'
-	@git -C $(REPO) submodule update --remote --merge --jobs 8
-	@$(MAKE) build
-	@$(MAKE) helptags
+	@$(RECIPE_ENV); \
+	echo '[update] git submodule update --remote --merge --jobs 8'; \
+	if [[ "$$dry" == "1" ]]; then \
+		echo '[dry-run] git -C $(REPO) submodule update --remote --merge --jobs 8'; \
+	else \
+		git -C $(REPO) submodule update --remote --merge --jobs 8; \
+	fi
+	@$(MAKE) build DOT_DRY_RUN="$(DOT_DRY_RUN)" DOT_DEBUG="$(DOT_DEBUG)" DOT_VERBOSE="$(DOT_VERBOSE)"
+	@$(MAKE) helptags DOT_DRY_RUN="$(DOT_DRY_RUN)" DOT_DEBUG="$(DOT_DEBUG)" DOT_VERBOSE="$(DOT_VERBOSE)"
 
 # ---- native build steps --------------------------------------------------
 # These compile/install per-plugin native artifacts that submodule update
@@ -40,15 +94,25 @@ build: build-fzf-native build-fzf-bin build-luasnip-jsregexp build-treesitter
 	@echo '[build] done'
 
 build-fzf-native:
-	@dir=$(REPO)/pack/nvim/opt/telescope-fzf-native.nvim; \
+	@$(RECIPE_ENV); \
+	dir=$(REPO)/pack/nvim/opt/telescope-fzf-native.nvim; \
 	 if [ ! -d "$$dir" ]; then echo '[build-fzf-native] not vendored, skipping'; exit 0; fi; \
 	 if command -v cmake >/dev/null 2>&1; then \
 	   echo '[build-fzf-native] cmake'; \
+	   if [[ "$$dry" == "1" ]]; then \
+	     echo "[dry-run] cmake -S $$dir -B $$dir/build -DCMAKE_BUILD_TYPE=Release"; \
+	     echo "[dry-run] cmake --build $$dir/build --config Release"; \
+	     exit 0; \
+	   fi; \
 	   cmake -S "$$dir" -B "$$dir/build" -DCMAKE_BUILD_TYPE=Release >/dev/null && \
 	   cmake --build "$$dir/build" --config Release >/dev/null || \
 	     { echo '[build-fzf-native] cmake build failed'; exit 0; }; \
 	 elif command -v make >/dev/null 2>&1 && command -v cc >/dev/null 2>&1; then \
 	   echo '[build-fzf-native] make'; \
+	   if [[ "$$dry" == "1" ]]; then \
+	     echo "[dry-run] $(MAKE) -C $$dir"; \
+	     exit 0; \
+	   fi; \
 	   $(MAKE) -C "$$dir" >/dev/null || \
 	     { echo '[build-fzf-native] make failed'; exit 0; }; \
 	 else \
@@ -56,7 +120,8 @@ build-fzf-native:
 	 fi
 
 build-fzf-bin:
-	@dir=$(REPO)/pack/shared/start/fzf; \
+	@$(RECIPE_ENV); \
+	dir=$(REPO)/pack/shared/start/fzf; \
 	 if [ ! -d "$$dir" ]; then echo '[build-fzf-bin] not vendored, skipping'; exit 0; fi; \
 	 if [ -x "$$dir/bin/fzf" ]; then echo '[build-fzf-bin] already present'; exit 0; fi; \
 	 if command -v fzf >/dev/null 2>&1; then \
@@ -65,36 +130,56 @@ build-fzf-bin:
 	 fi; \
 	 if [ -x "$$dir/install" ]; then \
 	   echo '[build-fzf-bin] downloading prebuilt binary via vendored install --bin'; \
+	   if [[ "$$dry" == "1" ]]; then \
+	     echo "[dry-run] $$dir/install --bin"; \
+	     exit 0; \
+	   fi; \
 	   "$$dir/install" --bin >/dev/null || echo '[build-fzf-bin] install --bin failed'; \
 	 else \
 	   echo '[build-fzf-bin] no install script found, skipping'; \
 	 fi
 
 build-luasnip-jsregexp:
-	@dir=$(REPO)/pack/nvim/opt/LuaSnip; \
+	@$(RECIPE_ENV); \
+	dir=$(REPO)/pack/nvim/opt/LuaSnip; \
 	 if [ ! -d "$$dir" ]; then echo '[build-luasnip-jsregexp] not vendored, skipping'; exit 0; fi; \
 	 if ! command -v make >/dev/null 2>&1 || ! command -v cc >/dev/null 2>&1; then \
 	   echo '[build-luasnip-jsregexp] need make+cc; skipping (LSP snippet transformations disabled)'; \
 	   exit 0; \
 	 fi; \
 	 echo '[build-luasnip-jsregexp] make install_jsregexp'; \
+	 if [[ "$$dry" == "1" ]]; then \
+	   echo "[dry-run] $(MAKE) -C $$dir install_jsregexp"; \
+	   exit 0; \
+	 fi; \
 	 $(MAKE) -C "$$dir" install_jsregexp >/dev/null 2>&1 || \
 	   echo '[build-luasnip-jsregexp] failed (optional; ignore unless you use LSP snippet transformations)'
 
 build-treesitter:
-	@dir=$(REPO)/pack/nvim/opt/nvim-treesitter; \
+	@$(RECIPE_ENV); \
+	dir=$(REPO)/pack/nvim/opt/nvim-treesitter; \
 	 if [ ! -d "$$dir" ]; then echo '[build-treesitter] not vendored, skipping'; exit 0; fi; \
 	 if ! command -v nvim >/dev/null 2>&1; then \
 	   echo '[build-treesitter] nvim not installed, skipping'; exit 0; fi; \
 	 if ! command -v cc >/dev/null 2>&1 && ! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1; then \
 	   echo '[build-treesitter] no C compiler; parsers will fail to build'; exit 0; fi; \
 	 echo '[build-treesitter] :TSUpdateSync (compiling configured parsers)'; \
+	 if [[ "$$dry" == "1" ]]; then \
+	   echo "[dry-run] nvim --headless -u $(REPO)/init.lua -c 'TSUpdateSync' -c 'qa!'"; \
+	   exit 0; \
+	 fi; \
 	 nvim --headless -u $(REPO)/init.lua -c 'TSUpdateSync' -c 'qa!' </dev/null >/dev/null 2>&1 || \
 	   echo '[build-treesitter] some parsers failed; run :TSUpdate inside nvim for details'
 
 helptags:
-	@command -v vim  >/dev/null 2>&1 && vim  -E -es -u $(REPO)/vimrc   -c 'silent! helptags ALL' -c 'qa!' >/dev/null 2>&1 || true
-	@command -v nvim >/dev/null 2>&1 && nvim --headless -u $(REPO)/init.lua -c 'silent! helptags ALL' -c 'qa!' >/dev/null 2>&1 || true
+	@$(RECIPE_ENV); \
+	if [[ "$$dry" == "1" ]]; then \
+		echo "[dry-run] vim -E -es -u $(REPO)/vimrc -c 'silent! helptags ALL' -c 'qa!'"; \
+		echo "[dry-run] nvim --headless -u $(REPO)/init.lua -c 'silent! helptags ALL' -c 'qa!'"; \
+	else \
+		command -v vim  >/dev/null 2>&1 && vim  -E -es -u $(REPO)/vimrc   -c 'silent! helptags ALL' -c 'qa!' >/dev/null 2>&1 || true; \
+		command -v nvim >/dev/null 2>&1 && nvim --headless -u $(REPO)/init.lua -c 'silent! helptags ALL' -c 'qa!' >/dev/null 2>&1 || true; \
+	fi
 	@echo '[helptags] regenerated'
 
 doctor:
@@ -114,25 +199,43 @@ list:
 # add: PLUGIN=owner/repo BUNDLE=shared|nvim
 add:
 	@test -n "$(PLUGIN)" || (echo 'usage: make add PLUGIN=owner/repo BUNDLE=shared|nvim' && exit 1)
-	@case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
+	@$(RECIPE_ENV); \
+	case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
 	  *) echo "BUNDLE must be 'shared' or 'nvim'"; exit 1;; esac; \
 	NAME=$$(basename $(PLUGIN) .git); \
 	echo "[add] $(PLUGIN) -> $$DEST/$$NAME"; \
-	git -C $(REPO) submodule add --depth 1 https://github.com/$(PLUGIN).git $$DEST/$$NAME
+	if [[ "$$dry" == "1" ]]; then \
+		echo "[dry-run] git -C $(REPO) submodule add --depth 1 https://github.com/$(PLUGIN).git $$DEST/$$NAME"; \
+	else \
+		git -C $(REPO) submodule add --depth 1 https://github.com/$(PLUGIN).git $$DEST/$$NAME; \
+	fi
 
 # rm: PLUGIN=name BUNDLE=shared|nvim
 rm:
 	@test -n "$(PLUGIN)" || (echo 'usage: make rm PLUGIN=name BUNDLE=shared|nvim' && exit 1)
-	@case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
+	@$(RECIPE_ENV); \
+	case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
 	  *) echo "BUNDLE must be 'shared' or 'nvim'"; exit 1;; esac; \
 	echo "[rm] $$DEST/$(PLUGIN)"; \
-	git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN); \
-	git -C $(REPO) rm -f $$DEST/$(PLUGIN); \
-	rm -rf $(REPO)/.git/modules/$$DEST/$(PLUGIN)
+	if [[ "$$dry" == "1" ]]; then \
+		echo "[dry-run] git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN)"; \
+		echo "[dry-run] git -C $(REPO) rm -f $$DEST/$(PLUGIN)"; \
+		echo "[dry-run] rm -rf $(REPO)/.git/modules/$$DEST/$(PLUGIN)"; \
+	else \
+		git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN); \
+		git -C $(REPO) rm -f $$DEST/$(PLUGIN); \
+		rm -rf $(REPO)/.git/modules/$$DEST/$(PLUGIN); \
+	fi
 
 clean:
-	@for p in $$HOME/.vim $$HOME/.config/nvim; do \
+	@$(RECIPE_ENV); \
+	for p in $$HOME/.vim $$HOME/.config/nvim; do \
 	  if [ -L "$$p" ] && [ "$$(readlink $$p)" = "$(REPO)" ]; then \
-	    echo "[clean] removing symlink $$p"; rm -f "$$p"; \
+	    echo "[clean] removing symlink $$p"; \
+	    if [[ "$$dry" == "1" ]]; then \
+	      echo "[dry-run] rm -f $$p"; \
+	    else \
+	      rm -f "$$p"; \
+	    fi; \
 	  fi; \
 	done
