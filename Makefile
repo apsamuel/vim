@@ -119,6 +119,7 @@ build-fzf-native:
 	   echo '[build-fzf-native] need cmake or (make+cc); skipping'; \
 	 fi
 
+
 build-fzf-bin:
 	@$(RECIPE_ENV); \
 	dir=$(REPO)/pack/shared/start/fzf; \
@@ -138,6 +139,7 @@ build-fzf-bin:
 	 else \
 	   echo '[build-fzf-bin] no install script found, skipping'; \
 	 fi
+
 
 build-luasnip-jsregexp:
 	@$(RECIPE_ENV); \
@@ -171,6 +173,7 @@ build-treesitter:
 	 nvim --headless -u $(REPO)/init.lua -c 'TSUpdateSync' -c 'qa!' </dev/null >/dev/null 2>&1 || \
 	   echo '[build-treesitter] some parsers failed; run :TSUpdate inside nvim for details'
 
+
 helptags:
 	@$(RECIPE_ENV); \
 	if [[ "$$dry" == "1" ]]; then \
@@ -182,9 +185,11 @@ helptags:
 	fi
 	@echo '[helptags] regenerated'
 
+
 doctor:
 	@bash $(REPO)/scripts/plugin-status.sh || true
 	@nvim --headless -u $(REPO)/init.lua -c 'checkhealth' -c 'qa!' || true
+
 
 plugins:
 	@bash $(REPO)/scripts/plugin-status.sh
