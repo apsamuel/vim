@@ -187,8 +187,74 @@ helptags:
 
 
 doctor:
-	@bash $(REPO)/scripts/plugin-status.sh || true
-	@nvim --headless -u $(REPO)/init.lua -c 'checkhealth' -c 'qa!' || true
+	@$(RECIPE_ENV); \
+	fails=0; \
+	echo "── vim doctor ──"; \
+	echo ""; \
+	echo "── dependencies ──"; \
+	for cmd in vim nvim; do \
+		if command -v $$cmd >/dev/null 2>&1; then \
+			printf '  ✔  %s (%s)\n' "$$cmd" "$$($$cmd --version 2>/dev/null | head -1)"; \
+		else \
+			printf '  ✘  %s not found\n' "$$cmd"; \
+			fails=$$((fails + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "── config symlinks ──"; \
+	nvim_cfg="$${XDG_CONFIG_HOME:-$$HOME/.config}/nvim"; \
+	for pair in "$$HOME/.vim:$(REPO)" "$$nvim_cfg:$(REPO)"; do \
+		p="$${pair%%:*}"; expect="$${pair#*:}"; \
+		if [ -L "$$p" ]; then \
+			target=$$(readlink "$$p"); \
+			if [ "$$target" = "$$expect" ]; then \
+				printf '  ✔  %-25s → %s\n' "$$p" "$$target"; \
+			else \
+				printf '  ✘  %-25s → %s (expected %s)\n' "$$p" "$$target" "$$expect"; \
+				printf '      fix: ln -snf "%s" "%s"\n' "$$expect" "$$p"; \
+				fails=$$((fails + 1)); \
+			fi; \
+		elif [ -e "$$p" ]; then \
+			printf '  ✘  %-25s exists but is NOT a symlink\n' "$$p"; \
+			printf '      fix: mv "%s" "%s.bak" && ln -snf "%s" "%s"\n' "$$p" "$$p" "$$expect" "$$p"; \
+			fails=$$((fails + 1)); \
+		else \
+			printf '  ✘  %-25s missing\n' "$$p"; \
+			printf '      fix: ln -snf "%s" "%s"\n' "$$expect" "$$p"; \
+			fails=$$((fails + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "── shared plugins ($(SHARED_BUNDLE)) ──"; \
+	for d in $(REPO)/$(SHARED_BUNDLE)/*/; do \
+		name=$$(basename "$$d"); \
+		if [ "$$name" = "*" ]; then break; fi; \
+		if [ -z "$$(ls -A "$$d" 2>/dev/null)" ]; then \
+			printf '  ✘  %-30s empty (not checked out)\n' "$$name"; \
+			fails=$$((fails + 1)); \
+		else \
+			printf '  ✔  %-30s ok\n' "$$name"; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "── nvim plugins ($(NVIM_BUNDLE)) ──"; \
+	for d in $(REPO)/$(NVIM_BUNDLE)/*/; do \
+		name=$$(basename "$$d"); \
+		if [ "$$name" = "*" ]; then break; fi; \
+		if [ -z "$$(ls -A "$$d" 2>/dev/null)" ]; then \
+			printf '  ✘  %-30s empty (not checked out)\n' "$$name"; \
+			fails=$$((fails + 1)); \
+		else \
+			printf '  ✔  %-30s ok\n' "$$name"; \
+		fi; \
+	done; \
+	echo ""; \
+	if [ $$fails -gt 0 ]; then \
+		echo "✘ $$fails issue(s) found"; \
+		exit 1; \
+	else \
+		echo "✔ vim fully healthy"; \
+	fi
 
 
 plugins:
