@@ -395,6 +395,33 @@ Leader is `\` (backslash). `<localleader>` is also `\`.
 | `make list`     | List vendored plugins per bundle.                            |
 | `make clean`    | Remove the `~/.vim` and `~/.config/nvim` symlinks.           |
 
+### Parameters
+
+| Parameter       | Effect                                          |
+| --------------- | ----------------------------------------------- |
+| `DOT_DRY_RUN=1` | Preview all actions without mutating the system |
+| `DOT_DEBUG=1`   | Enable bash xtrace (`set -x`) for debugging     |
+| `DOT_VERBOSE=1` | Verbose output for git/cmake/make operations    |
+| `PLUGIN`        | `owner/repo` or plugin name (for `add`/`rm`)    |
+| `BUNDLE`        | `shared` (vim+nvim) or `nvim` (nvim only)       |
+
+### Root Makefile Integration
+
+The parent `dot` Makefile provides passthrough targets with flag propagation:
+
+```bash
+# These are equivalent:
+make vim-install                                # from ~/.dot
+cd vendor/vim && make install                   # directly
+
+# Dry-run propagates automatically:
+DRY=1 make vim-add PLUGIN=owner/repo BUNDLE=shared   # from ~/.dot
+```
+
+Available root passthroughs: `vim-install`, `vim-update`, `vim-build`,
+`vim-helptags`, `vim-doctor`, `vim-plugins`, `vim-list`, `vim-add`, `vim-rm`,
+`vim-clean`.
+
 ---
 
 ## ➕ Adding / removing plugins

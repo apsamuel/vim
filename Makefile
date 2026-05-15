@@ -43,14 +43,20 @@
 #   DRY=1 DEBUG=1 make update   # Dry-run with debug output
 # ──────────────────────────────────────────────────────────────────────────────
 
-REPO            := $(shell pwd)
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
+REPO            := $(shell cd "$(dir $(lastword $(MAKEFILE_LIST)))" && pwd)
 SHARED_BUNDLE   := pack/shared/start
 NVIM_BUNDLE     := pack/nvim/opt
 BUNDLE          ?= shared
 PLUGIN          ?=
-DOT_DRY_RUN     ?= 0
-DOT_DEBUG       ?= 0
-DOT_VERBOSE     ?= 0
+DRY             ?= 0
+DEBUG           ?= 0
+VERBOSE         ?= 0
+DOT_DRY_RUN     ?= $(DRY)
+DOT_DEBUG       ?= $(DEBUG)
+DOT_VERBOSE     ?= $(VERBOSE)
 
 RECIPE_ENV := set -euo pipefail; \
 	if [[ "$(DOT_DEBUG)" == "1" ]]; then set -x; fi; \
@@ -59,23 +65,13 @@ RECIPE_ENV := set -euo pipefail; \
 .PHONY: help install update helptags clean add rm doctor list plugins build \
         build-fzf-native build-fzf-bin build-luasnip-jsregexp build-treesitter
 
-help:
-	@printf 'Targets:\n'
-	@printf '  make install                    Run install.sh (symlinks + submodules + build).\n'
-	@printf '  make build                      Compile native artifacts (fzf-native, fzf bin, jsregexp, TS parsers).\n'
-	@printf '  make update                     Pull latest for every floated submodule, then rebuild.\n'
-	@printf '  make helptags                   Regenerate vim/nvim helptags.\n'
-	@printf '  make plugins                    Show which staged plugins each editor actually loads.\n'
-	@printf '  make doctor                     Run plugin-status + :checkhealth in nvim.\n'
-	@printf '  make list                       List vendored plugins.\n'
-	@printf '  make add PLUGIN=owner/repo BUNDLE=shared|nvim   Vendor a new plugin.\n'
-	@printf '  make rm  PLUGIN=name BUNDLE=shared|nvim         Remove a vendored plugin.\n'
-	@printf '  make clean                      Remove ~/.vim and ~/.config/nvim symlinks.\n'
+help: ## Show this help
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 
-install:
+install: ## Run install.sh (symlinks + submodules + build)
 	@DOT_DRY_RUN="$(DOT_DRY_RUN)" DOT_DEBUG="$(DOT_DEBUG)" DOT_VERBOSE="$(DOT_VERBOSE)" bash $(REPO)/install.sh
 
-update:
+update: ## Pull latest for every floated submodule, then rebuild
 	@$(RECIPE_ENV); \
 	echo '[update] git submodule update --remote --merge --jobs 8'; \
 	if [[ "$$dry" == "1" ]]; then \
@@ -90,7 +86,7 @@ update:
 # These compile/install per-plugin native artifacts that submodule update
 # alone does NOT produce. All sub-targets are best-effort: a failure in one
 # does not abort the others (so missing toolchains degrade gracefully).
-build: build-fzf-native build-fzf-bin build-luasnip-jsregexp build-treesitter
+build: build-fzf-native build-fzf-bin build-luasnip-jsregexp build-treesitter ## Compile native artifacts (fzf, jsregexp, TS parsers)
 	@echo '[build] done'
 
 build-fzf-native:
@@ -174,7 +170,7 @@ build-treesitter:
 	   echo '[build-treesitter] some parsers failed; run :TSUpdate inside nvim for details'
 
 
-helptags:
+helptags: ## Regenerate vim/nvim helptags
 	@$(RECIPE_ENV); \
 	if [[ "$$dry" == "1" ]]; then \
 		echo "[dry-run] vim -E -es -u $(REPO)/vimrc -c 'silent! helptags ALL' -c 'qa!'"; \
@@ -186,7 +182,7 @@ helptags:
 	@echo '[helptags] regenerated'
 
 
-doctor:
+doctor: ## Run plugin-status + :checkhealth in nvim
 	@$(RECIPE_ENV); \
 	fails=0; \
 	echo "── vim doctor ──"; \
@@ -257,10 +253,10 @@ doctor:
 	fi
 
 
-plugins:
+plugins: ## Show staged plugins per editor
 	@bash $(REPO)/scripts/plugin-status.sh
 
-list:
+list: ## List vendored plugins
 	@printf '\n[shared] pack/shared/start\n'
 	@ls -1 $(REPO)/$(SHARED_BUNDLE) 2>/dev/null | grep -v '^\.gitkeep$$' || echo '  (empty)'
 	@printf '\n[nvim]   pack/nvim/opt\n'
@@ -268,12 +264,16 @@ list:
 	@echo
 
 # add: PLUGIN=owner/repo BUNDLE=shared|nvim
-add:
+add: ## Vendor a new plugin (PLUGIN=owner/repo BUNDLE=shared|nvim)
 	@test -n "$(PLUGIN)" || (echo 'usage: make add PLUGIN=owner/repo BUNDLE=shared|nvim' && exit 1)
 	@$(RECIPE_ENV); \
 	case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
 	  *) echo "BUNDLE must be 'shared' or 'nvim'"; exit 1;; esac; \
 	NAME=$$(basename $(PLUGIN) .git); \
+	if [ -d "$(REPO)/$$DEST/$$NAME" ] && [ -n "$$(ls -A "$(REPO)/$$DEST/$$NAME" 2>/dev/null)" ]; then \
+		echo "[add] $$DEST/$$NAME already exists; skipping"; \
+		exit 0; \
+	fi; \
 	echo "[add] $(PLUGIN) -> $$DEST/$$NAME"; \
 	if [[ "$$dry" == "1" ]]; then \
 		echo "[dry-run] git -C $(REPO) submodule add --depth 1 https://github.com/$(PLUGIN).git $$DEST/$$NAME"; \
@@ -282,23 +282,27 @@ add:
 	fi
 
 # rm: PLUGIN=name BUNDLE=shared|nvim
-rm:
+rm: ## Remove a vendored plugin (PLUGIN=name BUNDLE=shared|nvim)
 	@test -n "$(PLUGIN)" || (echo 'usage: make rm PLUGIN=name BUNDLE=shared|nvim' && exit 1)
 	@$(RECIPE_ENV); \
 	case "$(BUNDLE)" in shared) DEST=$(SHARED_BUNDLE) ;; nvim) DEST=$(NVIM_BUNDLE) ;; \
 	  *) echo "BUNDLE must be 'shared' or 'nvim'"; exit 1;; esac; \
+	if ! git -C $(REPO) config -f .gitmodules --get "submodule.$$DEST/$(PLUGIN).url" >/dev/null 2>&1; then \
+		echo "[rm] $$DEST/$(PLUGIN) not registered in .gitmodules; nothing to do"; \
+		exit 0; \
+	fi; \
 	echo "[rm] $$DEST/$(PLUGIN)"; \
 	if [[ "$$dry" == "1" ]]; then \
 		echo "[dry-run] git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN)"; \
 		echo "[dry-run] git -C $(REPO) rm -f $$DEST/$(PLUGIN)"; \
 		echo "[dry-run] rm -rf $(REPO)/.git/modules/$$DEST/$(PLUGIN)"; \
 	else \
-		git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN); \
-		git -C $(REPO) rm -f $$DEST/$(PLUGIN); \
+		git -C $(REPO) submodule deinit -f $$DEST/$(PLUGIN) || true; \
+		git -C $(REPO) rm -f $$DEST/$(PLUGIN) || true; \
 		rm -rf $(REPO)/.git/modules/$$DEST/$(PLUGIN); \
 	fi
 
-clean:
+clean: ## Remove ~/.vim and ~/.config/nvim symlinks
 	@$(RECIPE_ENV); \
 	for p in $$HOME/.vim $$HOME/.config/nvim; do \
 	  if [ -L "$$p" ] && [ "$$(readlink $$p)" = "$(REPO)" ]; then \
