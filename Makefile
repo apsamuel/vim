@@ -45,6 +45,7 @@
 
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
+.ONESHELL:
 
 REPO            := $(shell cd "$(dir $(lastword $(MAKEFILE_LIST)))" && pwd)
 SHARED_BUNDLE   := pack/shared/start
